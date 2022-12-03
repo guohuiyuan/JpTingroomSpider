@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gocolly/colly/v2"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -21,6 +22,7 @@ func init() {
 	idb = initialize(dbfile)
 }
 func main() {
+	list := make([]item, 0, 4096)
 	c := colly.NewCollector(
 		colly.AllowedDomains("jp.tingroom.com"),
 		colly.URLFilters(tre),
@@ -68,11 +70,23 @@ func main() {
 		playURL := e.ChildAttr("IFRAME", "src")
 		t.Visit(playURL)
 		it := item{Datetime: datetime, Title: title, Intro: intro, AudioURL: audioURL, Content: content, PageURL: e.Request.URL.String(), Category: category}
-		idb.Debug().Model(&item{}).Create(&it)
-	})
+		list = append(list, it)
 
-	// detailCollector.Visit("http://jp.tingroom.com/gequ/dmgequ/8233.html")
-	// detailCollector.Visit("http://jp.tingroom.com/gequ/lxgequ/66580.html")
+	})
+	bT := time.Now() // 开始时间
+
 	c.Visit("http://jp.tingroom.com/gequ/")
 	c.Visit("http://jp.tingroom.com/tingli/")
+
+	// 修改为批量插入
+	pl := Partition[item](list, 100)
+	for _, v := range pl {
+		err := idb.Create(&v)
+		if err != nil {
+			logrus.Errorln(err)
+		}
+	}
+
+	eT := time.Since(bT) // 从开始到当前所消耗的时间
+	logrus.Infoln("Run time: ", eT)
 }

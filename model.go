@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/fumiama/sqlite3" // import sql
-	"github.com/jinzhu/gorm"
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 var (
@@ -42,7 +42,7 @@ func initialize(dbpath string) *gorm.DB {
 		}
 		defer f.Close()
 	}
-	gdb, err := gorm.Open("sqlite3", dbpath)
+	gdb, err := gorm.Open(sqlite.Open(dbpath), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
